@@ -1,51 +1,35 @@
+
 const express = require('express');
-const fs = require('fs');
-const cors = require('cors');
+const bodyParser = require('body-parser');
+const { Pool } = require('pg');
+const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
-
-const DB_FILE = 'db.json';
-
-// Initialize db.json if it doesn't exist
-if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify({ history: [] }, null, 2));
-}
-
-// Read history from db
-function readHistory() {
-    const data = fs.readFileSync(DB_FILE);
-    return JSON.parse(data).history;
-}
-
-// Write history to db
-function writeHistory(history) {
-    fs.writeFileSync(DB_FILE, JSON.stringify({ history }, null, 2));
-}
-
-// API: Get history
-app.get('/api/history', (req, res) => {
-    const history = readHistory();
-    res.json(history);
+const pool = new Pool({
+    connectionString: 'postgresql://calculator_app_user:qwUyJcITiVTfzh6DfJHZpZsG7NmOoxPM@dpg-d0pcajeuk2gs739ftoo0-a.oregon-postgres.render.com/calculator_app',
+    ssl: { rejectUnauthorized: false }
 });
 
-// API: Add new calculation
-app.post('/api/calculate', (req, res) => {
+pool.query(`CREATE TABLE IF NOT EXISTS history (
+    id SERIAL PRIMARY KEY,
+    expression TEXT NOT NULL,
+    result TEXT NOT NULL
+)`);
+
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, '../frontend')));
+
+app.post('/calculate', async (req, res) => {
     const { expression, result } = req.body;
-    if (!expression || typeof result !== 'number') {
-        return res.status(400).json({ error: 'Invalid input' });
-    }
-    const history = readHistory();
-    const newEntry = { expression, result, timestamp: new Date().toISOString() };
-    history.push(newEntry);
-    writeHistory(history);
-    res.status(201).json(newEntry);
+    await pool.query('INSERT INTO history(expression, result) VALUES($1, $2)', [expression, result]);
+    res.sendStatus(200);
 });
 
-// Serve frontend
-app.use(express.static('frontend'));
+app.get('/history', async (req, res) => {
+    const result = await pool.query('SELECT expression, result FROM history ORDER BY id DESC LIMIT 10');
+    res.json(result.rows);
+});
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
