@@ -1,4 +1,4 @@
-const API = '/api';
+const API = '';
 
 async function calculate() {
     const expression = document.getElementById('expression').value;
