@@ -20,7 +20,7 @@ async function calculate() {
 }
 
 async function loadHistory() {
-    const res = await fetch(\`\${API}/history\`);
+    const res = await fetch('/history');
     const history = await res.json();
     const list = document.getElementById('history');
     list.innerHTML = '';
