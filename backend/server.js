@@ -48,5 +48,5 @@ app.post('/api/calculate', (req, res) => {
 app.use(express.static('frontend'));
 
 app.listen(PORT, () => {
-    console.log(\`Server running on http://localhost:\${PORT}\`);
+    console.log(`Server running on http://localhost:${PORT}`);
 });
